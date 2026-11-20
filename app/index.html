@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SUNDOWN HARBOR — Cover Studio</title>
+<meta name="description" content="Turn any photo and caption into Vice City style multi-panel cover art, offline in your browser. Export 1080×1080, 1080×1350 and 1920×1080 PNGs.">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">
+    <span class="brand-mark">★</span>
+    <div>
+      <h1>SUNDOWN HARBOR</h1>
+      <p>Cover Studio — your photos, your cast, your poster</p>
+    </div>
+  </div>
+  <div class="top-actions">
+    <button id="btn-undo" type="button" class="btn ghost" title="Undo (Ctrl+Z)">↩ Undo</button>
+    <button id="btn-redo" type="button" class="btn ghost" title="Redo (Ctrl+Y)">↪ Redo</button>
+    <button id="btn-auto" type="button" class="btn">✦ Auto layout</button>
+    <button id="btn-surprise" type="button" class="btn accent">🎲 Surprise me</button>
+  </div>
+</header>
+
+<main class="layout">
+  <section class="preview-col">
+    <div id="preview-box" class="preview-box">
+      <canvas id="preview" width="960" height="540" aria-label="Cover preview"></canvas>
+    </div>
+    <p class="hint">Click a panel to select it · drag to reposition the photo · scroll to zoom · photos never leave this machine.</p>
+    <div class="export-row">
+      <label class="size-label">Size
+        <select id="size-select"></select>
+      </label>
+      <button id="btn-export" type="button" class="btn accent big">↓ Export PNG</button>
+      <button id="btn-export-all" type="button" class="btn big">↓ Export all three</button>
+    </div>
+  </section>
+
+  <aside class="controls">
+    <section class="card">
+      <h2>Layout</h2>
+      <div id="layout-picker" class="picker"></div>
+    </section>
+
+    <section class="card">
+      <h2>Grade</h2>
+      <div id="grade-picker" class="picker"></div>
+    </section>
+
+    <section class="card">
+      <h2>Caption</h2>
+      <label>Title (2 words)
+        <input id="title-input" type="text" maxlength="24" value="SUNDOWN HARBOR">
+      </label>
+      <label>Subtitle (script)
+        <input id="subtitle-input" type="text" maxlength="48" value="where the tide keeps secrets">
+      </label>
+      <label>Tagline strip
+        <input id="tagline-input" type="text" maxlength="64" value="SEVEN FACES · ONE COAST · NO WAY BACK">
+      </label>
+      <label>Quote (top strip)
+        <input id="quote-input" type="text" maxlength="72" value="THE COAST NEVER FORGIVES — BUT IT ALWAYS DELIVERS">
+      </label>
+      <label class="check"><input id="popout-check" type="checkbox" checked> Pop-out hero (breaks the frame)</label>
+    </section>
+
+    <section class="card">
+      <h2>Cast — <span id="panel-tag">Panel 1</span></h2>
+      <div id="panel-list" class="panel-list"></div>
+      <div class="panel-controls">
+        <label>Zoom <span id="zoom-val">115%</span>
+          <input id="panel-zoom" type="range" min="100" max="300" value="115">
+        </label>
+        <div class="btn-row">
+          <button id="btn-flip" type="button" class="btn small">⇄ Flip</button>
+          <button id="btn-swap" type="button" class="btn small">⇅ Swap</button>
+          <button id="btn-face" type="button" class="btn small">◉ Face</button>
+        </div>
+        <label>Role (name tag)
+          <input id="panel-role" type="text" maxlength="18">
+        </label>
+        <div class="grid-2">
+          <label>Location
+            <input id="panel-place" type="text" maxlength="20">
+          </label>
+          <label>Time
+            <input id="panel-time" type="text" maxlength="10">
+          </label>
+        </div>
+        <label>Note
+          <input id="panel-note" type="text" maxlength="28">
+        </label>
+        <label class="upload">＋ Load your photo into this panel
+          <input id="photo-upload" type="file" accept="image/*">
+        </label>
+        <button id="btn-samples" type="button" class="btn small">Restore sample cast (7 photos)</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Effects</h2>
+      <label>Paint <span id="fx-paint-val">35</span>
+        <input id="fx-paint" type="range" min="0" max="100" value="35">
+      </label>
+      <label>Grade <span id="fx-grade-val">70</span>
+        <input id="fx-grade" type="range" min="0" max="100" value="70">
+      </label>
+      <label>Halftone <span id="fx-halftone-val">0</span>
+        <input id="fx-halftone" type="range" min="0" max="100" value="0">
+      </label>
+      <label>Grain <span id="fx-grain-val">28</span>
+        <input id="fx-grain" type="range" min="0" max="100" value="28">
+      </label>
+      <label>Glow <span id="fx-glow-val">55</span>
+        <input id="fx-glow" type="range" min="0" max="100" value="55">
+      </label>
+    </section>
+
+    <section class="card about">
+      <h2>About</h2>
+      <p>Offline cover maker. All art is original — no game logos, artwork or fonts. Lettering: Anton &amp; Pacifico (SIL Open Font License, files in <code>fonts/</code>). Sample photos were made with an image model; your own photos stay on your machine.</p>
+    </section>
+  </aside>
+</main>
+
+<div id="toast" class="toast" role="status"></div>
+<script type="module" src="src/shots.js"></script>
+</body>
+</html>
