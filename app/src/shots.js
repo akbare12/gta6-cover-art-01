@@ -12,7 +12,7 @@
 // browser knows when to capture.
 
 import { defaultState, loadImages, renderCover, sizeById } from './cover.js';
-import { initEditor } from './main.js';
+import { initEditor, renderPreview } from './main.js';
 
 const params = new URLSearchParams(location.search);
 const shot = params.get('shot') || '';
@@ -53,13 +53,49 @@ async function shotEditor() {
   // Flip / Swap / Face, name tag — with the Effects sliders below them.
   const items = document.querySelectorAll('.panel-item');
   if (items[1]) items[1].click();
+  // Scroll the RIGHT column inside its own box, never the document:
+  // scrollIntoView on the document used to push the preview canvas
+  // above the fold, leaving the left column blank dark purple.
+  const aside = document.querySelector('.controls');
+  if (aside) {
+    aside.style.maxHeight = `${Math.max(320, window.innerHeight - aside.getBoundingClientRect().top - 24)}px`;
+    aside.style.overflowY = 'auto';
+  }
   const controls = document.querySelector('.panel-controls');
   if (controls) controls.scrollIntoView({ block: 'start' });
+  window.scrollTo(0, 0);
+  // Readiness guard: only signal ready once the preview canvas actually
+  // holds a drawn, non-uniform frame (sample photos loaded + rendered).
+  // A blank canvas re-renders once before we report ready.
+  await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+  if (!previewDrawn()) {
+    renderPreview();
+    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+  }
   // Show the export confirmation toast, pinned (no auto-hide in the shot).
   const toastEl = document.getElementById('toast');
   toastEl.textContent = 'Saved sundown-harbor-1920x1080.png — 1920 × 1080 PNG.';
   toastEl.classList.add('show');
   window.__shotReady = true;
+}
+
+// True when the preview canvas holds a drawn frame: many distinct
+// colours across a pixel sample. A blank / cleared canvas has one.
+// A probe failure must not block readiness, so it reports drawn.
+function previewDrawn() {
+  try {
+    const c = document.getElementById('preview');
+    if (!c || !c.width || !c.height) return false;
+    const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data;
+    const seen = new Set();
+    for (let i = 0; i < d.length; i += 400) {
+      seen.add(d[i] + ',' + d[i + 1] + ',' + d[i + 2]);
+      if (seen.size > 64) return true;
+    }
+    return false;
+  } catch {
+    return true;
+  }
 }
 
 async function boot() {

@@ -38,11 +38,11 @@ export const GRADES = [
 export const LAYOUTS = [
   { id: 'hero-mosaic', name: 'Hero mosaic', panels: 7, hero: 0 },
   { id: 'hero-three', name: 'Hero + three', panels: 4, hero: 0 },
-  { id: 'six-grid', name: 'Six grid', panels: 6, hero: -1 },
+  { id: 'six-grid', name: 'Six grid', panels: 6, hero: 0 },
   { id: 'diagonal-trio', name: 'Diagonal trio', panels: 3, hero: 0 },
   { id: 'seven-mosaic', name: 'Seven mosaic', panels: 7, hero: 0 },
   { id: 'comic-slash', name: 'Comic slash', panels: 5, hero: 2 },
-  { id: 'nine-panel', name: 'Nine-panel', panels: 9, hero: -1 },
+  { id: 'nine-panel', name: 'Nine-panel', panels: 9, hero: 4 },
 ];
 
 export function defaultState() {
@@ -142,8 +142,8 @@ export function layoutPanels(layoutId, W, H) {
   }
 }
 
-// Clip path for one panel rect (supports slanted comic edges).
-function clipPanel(ctx, px, py, pw, ph, slant) {
+// Path for one panel rect (supports slanted comic edges).
+function panelPath(ctx, px, py, pw, ph, slant) {
   ctx.beginPath();
   if (slant) {
     const s = slant * pw;
@@ -155,6 +155,11 @@ function clipPanel(ctx, px, py, pw, ph, slant) {
     ctx.rect(px, py, pw, ph);
   }
   ctx.closePath();
+}
+
+// Clip path for one panel rect (supports slanted comic edges).
+function clipPanel(ctx, px, py, pw, ph, slant) {
+  panelPath(ctx, px, py, pw, ph, slant);
   ctx.clip();
 }
 
@@ -500,12 +505,16 @@ function drawFurniture(ctx, W, H, state, seed) {
   ctx.fillText(cs, 16 * s + cw / 2, csY + 15 * s);
   ctx.restore();
 
-  // Gold seal, right edge over the panels.
-  drawGoldSeal(ctx, W - 74 * s, H * 0.40, 58 * s);
+  // Gold seal, right edge over the panels. It sits at 0.478H — the gap
+  // between the panel rows' label strips (a seal at 0.40H covered the
+  // CHARMER label's second line in the nine-panel layout).
+  drawGoldSeal(ctx, W - 74 * s, H * 0.478, 58 * s);
 
-  // Barcode, bottom right just above the palm band — clear of the
-  // subtitle script above it (subtitle bottom ≈ 0.869H, barcode top 0.881H).
-  drawBarcode(ctx, W - 168 * s, H * 0.925 - 48 * s, 152 * s, 44 * s, seed);
+  // Barcode, bottom right, lifted well clear of the palm band: palm
+  // fronds reach ~0.034H above the band and used to cross the barcode's
+  // number, and the box nearly touched the gold divider. Its white box
+  // now ends ~0.05H above the band, above every frond tip.
+  drawBarcode(ctx, W - 168 * s, H * 0.925 - 100 * s, 152 * s, 44 * s, seed);
 
   // Palm band + two-line production footer.
   const bandY = H * 0.925;
@@ -601,11 +610,15 @@ export function renderCover(canvas, state, images) {
     const panel = state.panels[i % state.panels.length];
     const px = r.x * W, py = r.y * H, pw = r.w * W, ph = r.h * H;
     const isHero = i === heroIdx && state.popout;
-    // Pop-out hero (T2): the hero photo breaks out of its frame, white edge.
+    // Pop-out hero (T2): the hero photo genuinely breaks out of its
+    // frame — well past the right and bottom edges, over the neighbours
+    // — with a white edge + pink glow. (The old 6px nudge was invisible:
+    // the lift went under the quote strip, drawn later, and the clipped
+    // stroke + glow never spilled outside the panel.)
     let ex = px, ey = py, ew = pw, eh = ph;
     if (isHero) {
       const lift = H * 0.028;
-      ex = px - 6 * s; ey = py - lift; ew = pw + 12 * s; eh = ph + lift;
+      ex = px - 6 * s; ey = py - lift; ew = pw + 28 * s; eh = ph + lift + 32 * s;
     }
     ctx.save();
     clipPanel(ctx, ex, ey, ew, eh, r.slant);
@@ -624,18 +637,28 @@ export function renderCover(canvas, state, images) {
     ctx.save();
     if (isHero) {
       ctx.shadowColor = '#ff2975';
-      ctx.shadowBlur = (fx.glow / 100) * 22 + 4;
+      ctx.shadowBlur = (fx.glow / 100) * 26 + 8;
       ctx.strokeStyle = '#ffffff';
-      ctx.lineWidth = Math.max(2, 3 * s);
+      ctx.lineWidth = Math.max(2.5, 3.5 * s);
+      // Stroke WITHOUT the clip: the white edge and the pink glow must
+      // spill outside the expanded frame, or the pop-out reads as flat.
+      panelPath(ctx, ex, ey, ew, eh, r.slant);
+      ctx.stroke();
     } else {
       ctx.strokeStyle = 'rgba(10,5,18,0.9)';
       ctx.lineWidth = Math.max(2, 3 * s);
+      clipPanel(ctx, ex, ey, ew, eh, r.slant);
+      ctx.stroke();
     }
-    clipPanel(ctx, ex, ey, ew, eh, r.slant);
-    ctx.stroke();
     ctx.restore();
-    // Two-line label, inside the panel's own (non-expanded) bottom.
-    drawPanelLabel(ctx, px, py, pw, ph, panel, s);
+  }
+  // Two-line labels in a second pass, inside each panel's own
+  // (non-expanded) bottom — so the hero's expanded photo can never
+  // paint over a neighbour's label.
+  for (const i of order) {
+    const r = rects[i];
+    const panel = state.panels[i % state.panels.length];
+    drawPanelLabel(ctx, r.x * W, r.y * H, r.w * W, r.h * H, panel, s);
   }
 
   drawVignette(ctx, W, H);

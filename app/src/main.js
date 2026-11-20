@@ -52,7 +52,7 @@ function updateUndoButtons() {
   $('btn-redo').disabled = future.length === 0;
 }
 
-async function renderPreview() {
+export async function renderPreview() {
   if (!previewCanvas) return;
   const size = sizeById(state.size);
   const box = $('preview-box');
