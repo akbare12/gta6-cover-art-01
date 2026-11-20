@@ -21,7 +21,7 @@ export const DEFAULT_CAST = [
   { photo: 'samples/man-rooftop.jpg', role: 'THE BOSS', place: 'ROOFTOP BAR', time: '8:05 PM', note: 'OWNS THE SKYLINE', zoom: 1.1, flip: false, fx: 0.5, fy: 0.4 },
   { photo: 'samples/friends-neon.jpg', role: 'THE GETAWAY', place: 'NEON STREET', time: '11:47 PM', note: 'FULL THROTTLE', zoom: 1.1, flip: false, fx: 0.5, fy: 0.45 },
   { photo: 'samples/man-pier.jpg', role: 'THE ANGLER', place: 'OLD PIER', time: '5:15 AM', note: 'PATIENT AS THE TIDE', zoom: 1.12, flip: false, fx: 0.5, fy: 0.4 },
-  { photo: 'samples/man-beard.jpg', role: 'THE FIXER', place: 'BACK ALLEY', time: '9:30 PM', note: 'NO QUESTIONS ASKED', zoom: 1.35, flip: false, fx: 0.5, fy: 0.32 },
+  { photo: 'samples/man-beard.jpg', role: 'THE FIXER', place: 'BACK ALLEY', time: '9:30 PM', note: 'NO QUESTIONS ASKED', zoom: 1.15, flip: false, fx: 0.5, fy: 0.45 },
   { photo: 'samples/woman-redhair.jpg', role: 'THE CHARMER', place: 'CASINO FLOOR', time: '10:12 PM', note: 'NEVER BLUFFS', zoom: 1.3, flip: false, fx: 0.5, fy: 0.3 },
   { photo: 'samples/man-tattoo.jpg', role: 'THE LOOKOUT', place: 'BONFIRE BEACH', time: '6:15 PM', note: 'SEES EVERYTHING', zoom: 1.3, flip: false, fx: 0.5, fy: 0.3 },
 ];
@@ -415,9 +415,13 @@ function drawTitleBlock(ctx, W, H, state, fx) {
   ctx.restore();
 
   // Line 2: Pacifico script, white/cyan — always high contrast over dark.
-  const subPx = fitFont(ctx, state.subtitle, (px) => `${px}px Pacifico, cursive`, W * 0.8, H * 0.048);
+  // Smaller than before and shifted left: in portrait the subtitle's
+  // last word ran under the barcode's white box (its right edge crossed
+  // the box's left edge by ~39px), so the final "s" of "secrets" was
+  // covered. It now ends well clear of the box.
+  const subPx = fitFont(ctx, state.subtitle, (px) => `${px}px Pacifico, cursive`, W * 0.78, H * 0.043);
   ctx.save();
-  ctx.translate(W / 2, H * 0.845);
+  ctx.translate(W / 2 - 36 * s, H * 0.845);
   ctx.rotate(-0.02);
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
@@ -510,11 +514,13 @@ function drawFurniture(ctx, W, H, state, seed) {
   // CHARMER label's second line in the nine-panel layout).
   drawGoldSeal(ctx, W - 74 * s, H * 0.478, 58 * s);
 
-  // Barcode, bottom right, lifted well clear of the palm band: palm
-  // fronds reach ~0.034H above the band and used to cross the barcode's
-  // number, and the box nearly touched the gold divider. Its white box
-  // now ends ~0.05H above the band, above every frond tip.
-  drawBarcode(ctx, W - 168 * s, H * 0.925 - 100 * s, 152 * s, 44 * s, seed);
+  // Barcode, bottom right, lifted clear of the palm band and lowered
+  // away from the subtitle: palm fronds used to cross the barcode's
+  // number, and in portrait the subtitle's last word ran under this
+  // white box. The box now sits lower (its bottom stays above every
+  // frond tip) while the subtitle is smaller and shifted left, so the
+  // two never meet.
+  drawBarcode(ctx, W - 168 * s, H * 0.925 - 64 * s, 152 * s, 44 * s, seed);
 
   // Palm band + two-line production footer.
   const bandY = H * 0.925;
@@ -611,14 +617,15 @@ export function renderCover(canvas, state, images) {
     const px = r.x * W, py = r.y * H, pw = r.w * W, ph = r.h * H;
     const isHero = i === heroIdx && state.popout;
     // Pop-out hero (T2): the hero photo genuinely breaks out of its
-    // frame — well past the right and bottom edges, over the neighbours
-    // — with a white edge + pink glow. (The old 6px nudge was invisible:
-    // the lift went under the quote strip, drawn later, and the clipped
-    // stroke + glow never spilled outside the panel.)
+    // frame — 84px past the right and bottom edges, over the neighbours
+    // — with a pink rim + white edge + pink glow. (The old 28/32px nudge
+    // read as a neat grid: its lift went under the quote strip, drawn
+    // later, and the small breakout never looked like a cut-out. The top
+    // edge stays at the panel top — there is no room above it.)
     let ex = px, ey = py, ew = pw, eh = ph;
     if (isHero) {
-      const lift = H * 0.028;
-      ex = px - 6 * s; ey = py - lift; ew = pw + 28 * s; eh = ph + lift + 32 * s;
+      const out = 84 * s;
+      ex = px - 8 * s; ey = py; ew = pw + 8 * s + out; eh = ph + out;
     }
     ctx.save();
     clipPanel(ctx, ex, ey, ew, eh, r.slant);
@@ -636,12 +643,19 @@ export function renderCover(canvas, state, images) {
     // Frame: thin dark gutter + optional white pop-out edge + glow.
     ctx.save();
     if (isHero) {
+      // Stroke WITHOUT the clip: the pink rim, white edge and pink glow
+      // must spill outside the expanded frame, or the pop-out reads flat.
+      // Pink rim first (wide), white edge on top: the pink peeks out on
+      // both sides of the white line, so the cut-out edge reads at a glance.
       ctx.shadowColor = '#ff2975';
-      ctx.shadowBlur = (fx.glow / 100) * 26 + 8;
+      ctx.shadowBlur = (fx.glow / 100) * 30 + 10;
+      ctx.strokeStyle = '#ff2975';
+      ctx.lineWidth = Math.max(6, 9 * s);
+      panelPath(ctx, ex, ey, ew, eh, r.slant);
+      ctx.stroke();
+      ctx.shadowBlur = 0;
       ctx.strokeStyle = '#ffffff';
-      ctx.lineWidth = Math.max(2.5, 3.5 * s);
-      // Stroke WITHOUT the clip: the white edge and the pink glow must
-      // spill outside the expanded frame, or the pop-out reads as flat.
+      ctx.lineWidth = Math.max(2.5, 4 * s);
       panelPath(ctx, ex, ey, ew, eh, r.slant);
       ctx.stroke();
     } else {

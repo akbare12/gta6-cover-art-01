@@ -72,10 +72,8 @@ async function shotEditor() {
     renderPreview();
     await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
   }
-  // Show the export confirmation toast, pinned (no auto-hide in the shot).
-  const toastEl = document.getElementById('toast');
-  toastEl.textContent = 'Saved sundown-harbor-1920x1080.png — 1920 × 1080 PNG.';
-  toastEl.classList.add('show');
+  // The toast stays hidden in the shot: pinned, it covered ~34% of the
+  // "Export all three" button at this viewport. The button must read whole.
   window.__shotReady = true;
 }
 
