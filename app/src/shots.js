@@ -7,7 +7,12 @@ const params = new URLSearchParams(location.search);
 const shot = params.get('shot');
 if (shot) {
   const scenes = {
-    cover1: { w: 1280, h: 720, layout: 'hero-mosaic', grade: 'sunset' },
+    // cover1: the wide hero-mosaic strip (1280x720) crops the Charmer photo
+    // to a ~5:1 slice; at the default fy 0.42 the slice sits on her
+    // nose/mouth and her eyes fall out of frame. fy 0.29 centres the slice
+    // on her eyes (photo eyes ~0.28-0.30). Scoped to this scene only —
+    // cover3/cover4 keep the default framing that already shows her face.
+    cover1: { w: 1280, h: 720, layout: 'hero-mosaic', grade: 'sunset', panels: { charmer: { fy: 0.29 } } },
     cover3: { w: 1024, h: 1280, layout: 'hero-mosaic', grade: 'neon' },
     cover4: { w: 1080, h: 1080, layout: 'six-grid', grade: 'golden' },
   };
@@ -24,6 +29,12 @@ if (shot) {
     const state = defaultState();
     state.layout = scene.layout;
     state.grade = scene.grade;
+    if (scene.panels) {
+      for (const [id, over] of Object.entries(scene.panels)) {
+        const p = state.panels.find((q) => q.id === id);
+        if (p) Object.assign(p, over);
+      }
+    }
     const run = async () => {
       try {
         await document.fonts.load('80px Anton');
