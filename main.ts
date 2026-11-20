@@ -1,38 +1,32 @@
-// SUNDOWN HARBOR — a gta6-cover-art-01 entry (Node 22, standard library only).
-// The program hands in the app: it copies this directory's app/ (the offline
-// cover studio: index.html, ES modules, vendored fonts, AI-made sample photos)
-// and screenshots/ to /output, then writes /output/dossier.json with the
-// vendored make.fun library, exactly as the kit's starter does. The app itself
-// is the entry's own work: a multi-panel Vice City style poster maker with
-// seven layouts, six sunset/neon grades, two-layer lettering, per-panel crop
-// and caption controls, and PNG export in 1080x1080, 1080x1350, 1920x1080.
-//
-// Try it locally with `node serve.ts`, then open http://localhost:8080.
-// Outside the grader's container, MAKEFUN_OUTPUT_DIR stands in for /output:
-//   mkdir -p out && MAKEFUN_OUTPUT_DIR=out node main.ts
+// Sundown Harbor — gta6-cover-art-01 entry program (Node 22, stdlib only).
+// Hands the app in: copies this repo's app/ and screenshots/ beside this
+// file into the output directory and writes dossier.json with the vendored
+// make.fun library (vendor/makefun-app.ts, the kit's copy, unchanged).
+// Outside the grader, MAKEFUN_OUTPUT_DIR stands in for /output:
+//   MAKEFUN_OUTPUT_DIR=out node main.ts
 
 import { cpSync, existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { buildDossier } from './vendor/makefun-app.ts';
 
-const here = fileURLToPath(new URL('.', import.meta.url));
-const out = process.env.MAKEFUN_OUTPUT_DIR ?? '/output';
+const repoRoot = fileURLToPath(new URL('.', import.meta.url));
+const outputDir = process.env.MAKEFUN_OUTPUT_DIR ?? '/output';
 
-mkdirSync(out, { recursive: true });
-cpSync(join(here, 'app'), join(out, 'app'), { recursive: true });
-mkdirSync(join(out, 'screenshots'), { recursive: true });
-if (existsSync(join(here, 'screenshots'))) {
-  cpSync(join(here, 'screenshots'), join(out, 'screenshots'), { recursive: true });
+mkdirSync(outputDir, { recursive: true });
+cpSync(join(repoRoot, 'app'), join(outputDir, 'app'), { recursive: true });
+mkdirSync(join(outputDir, 'screenshots'), { recursive: true });
+if (existsSync(join(repoRoot, 'screenshots'))) {
+  cpSync(join(repoRoot, 'screenshots'), join(outputDir, 'screenshots'), { recursive: true });
 }
 
-// The scorer's own caps (reference/gate.json): only text_max_bytes shapes the
-// bytes; the others refuse an entry the scorer would refuse (more than 4
-// screenshots or one over 256 KiB; more than 993 files in app/ or 48 MiB of
-// app files, in all, or a path under app/ over 1000 bytes).
+// The scorer's own caps (kit reference/gate.json): the dossier text cap is
+// the only one that shapes bytes; the rest refuse an entry the scorer would
+// refuse anyway (over 4 screenshots, one over 256 KiB, app/ over 993 files
+// or 48 MiB, a path under app/ over 1000 bytes).
 writeFileSync(
-  join(out, 'dossier.json'),
-  buildDossier(out, {
+  join(outputDir, 'dossier.json'),
+  buildDossier(outputDir, {
     text_max_bytes: 163840,
     screenshots: { max: 4, max_bytes: 262144 },
     app_max_files: 993,
