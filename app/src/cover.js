@@ -36,7 +36,7 @@ export const GRADES = [
 ];
 
 export const LAYOUTS = [
-  { id: 'hero-mosaic', name: 'Hero mosaic', panels: 6, hero: 0 },
+  { id: 'hero-mosaic', name: 'Hero mosaic', panels: 7, hero: 0 },
   { id: 'hero-three', name: 'Hero + three', panels: 4, hero: 0 },
   { id: 'six-grid', name: 'Six grid', panels: 6, hero: -1 },
   { id: 'diagonal-trio', name: 'Diagonal trio', panels: 3, hero: 0 },
@@ -105,11 +105,13 @@ export async function loadImages(state) {
 }
 
 // Panel rectangles in unit space (0..1 of the cover), per layout id.
-// The cover's top strip (quote) sits above the panel area; panels fill
-// the rest and the title block overlaps their lower part under a scrim.
+// The cover's top strip (quote) sits above the panel area; panels end at
+// 0.60 so the tagline lane + title band below them never cover a panel
+// label — the title block used to overlap the panels' lower part.
 export function layoutPanels(layoutId, W, H) {
   const top = 0.042; // quote strip height fraction
-  const area = { x: 0, y: top, w: 1, h: 1 - top };
+  const bottom = 0.60; // panel area ends here; tagline lane + title band below
+  const area = { x: 0, y: top, w: 1, h: bottom - top };
   const R = (x, y, w, h, hero = false, slant = 0) => ({
     x: area.x + x * area.w, y: area.y + y * area.h,
     w: w * area.w, h: h * area.h, hero, slant,
@@ -353,33 +355,40 @@ function drawGoldSeal(ctx, cx, cy, r) {
 // ---- Title block: two-layer lettering (Anton gradient + Pacifico script) ----
 function drawTitleBlock(ctx, W, H, state, fx) {
   const s = H / 1080;
-  const scrim = ctx.createLinearGradient(0, H * 0.55, 0, H);
+  // The title band sits below the panels (they end at 0.60), so a soft
+  // scrim here only deepens the empty band — it never covers a label.
+  const scrim = ctx.createLinearGradient(0, H * 0.58, 0, H);
   scrim.addColorStop(0, 'rgba(8,4,18,0)');
   scrim.addColorStop(0.45, 'rgba(8,4,18,0.55)');
   scrim.addColorStop(1, 'rgba(8,4,18,0.92)');
   ctx.fillStyle = scrim;
-  ctx.fillRect(0, H * 0.55, W, H * 0.45);
+  ctx.fillRect(0, H * 0.58, W, H * 0.42);
 
-  // Tagline strip above the title.
+  // Tagline strip in its own lane directly below the panel grid
+  // (0.60–0.665) and above the title — never over a panel label.
+  // The face count is dynamic: it follows the layout's panel count,
+  // so a 6-panel layout never claims "SEVEN FACES".
   ctx.save();
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   const tagSize = Math.max(13, H * 0.016);
   ctx.font = `700 ${tagSize}px Anton, "Arial Narrow", sans-serif`;
-  const tag = state.tagline.toUpperCase();
+  const numWords = { 3: 'THREE', 4: 'FOUR', 5: 'FIVE', 6: 'SIX', 7: 'SEVEN', 9: 'NINE' };
+  const faces = numWords[layoutById(state.layout).panels] || '';
+  const tag = state.tagline.toUpperCase().replace(/^[A-Z]+(?=\s+FACES\b)/, faces);
   const tagW = ctx.measureText(tag).width;
   ctx.fillStyle = 'rgba(8,4,18,0.55)';
-  roundRect(ctx, W / 2 - tagW / 2 - 22 * s, H * 0.645 - tagSize * 0.9, tagW + 44 * s, tagSize * 1.8, 3);
+  roundRect(ctx, W / 2 - tagW / 2 - 22 * s, H * 0.632 - tagSize * 0.9, tagW + 44 * s, tagSize * 1.8, 3);
   ctx.fill();
   ctx.fillStyle = '#ffd319';
-  ctx.fillText(tag, W / 2, H * 0.645);
+  ctx.fillText(tag, W / 2, H * 0.632);
   ctx.restore();
 
   // Line 1: Anton, horizontal sunset gradient, dark outline + thin white stroke.
   const title = (state.title || 'SUNDOWN HARBOR').toUpperCase();
   const maxW = W * 0.94;
-  const titlePx = fitFont(ctx, title, (px) => `${px}px Anton, "Arial Narrow", sans-serif`, maxW, H * 0.155);
-  const titleY = H * 0.815;
+  const titlePx = fitFont(ctx, title, (px) => `${px}px Anton, "Arial Narrow", sans-serif`, maxW, H * 0.125);
+  const titleY = H * 0.745;
   const grad = ctx.createLinearGradient(W / 2 - maxW / 2, 0, W / 2 + maxW / 2, 0);
   grad.addColorStop(0, '#ffd319');
   grad.addColorStop(0.35, '#ff7a18');
@@ -403,7 +412,7 @@ function drawTitleBlock(ctx, W, H, state, fx) {
   // Line 2: Pacifico script, white/cyan — always high contrast over dark.
   const subPx = fitFont(ctx, state.subtitle, (px) => `${px}px Pacifico, cursive`, W * 0.8, H * 0.048);
   ctx.save();
-  ctx.translate(W / 2, H * 0.885);
+  ctx.translate(W / 2, H * 0.845);
   ctx.rotate(-0.02);
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
@@ -479,7 +488,7 @@ function drawFurniture(ctx, W, H, state, seed) {
   const cs = 'COMING SOON';
   ctx.font = `700 ${14 * s}px Anton, sans-serif`;
   const cw = ctx.measureText(cs).width + 26 * s;
-  const csY = H * 0.52;
+  const csY = H * 0.50;
   roundRect(ctx, 16 * s, csY, cw, 28 * s, 14 * s);
   ctx.fill();
   ctx.strokeStyle = '#ffd319';
@@ -494,8 +503,9 @@ function drawFurniture(ctx, W, H, state, seed) {
   // Gold seal, right edge over the panels.
   drawGoldSeal(ctx, W - 74 * s, H * 0.40, 58 * s);
 
-  // Barcode, bottom right just above the palm band.
-  drawBarcode(ctx, W - 168 * s, H * 0.865 - 34 * s, 152 * s, 44 * s, seed);
+  // Barcode, bottom right just above the palm band — clear of the
+  // subtitle script above it (subtitle bottom ≈ 0.869H, barcode top 0.881H).
+  drawBarcode(ctx, W - 168 * s, H * 0.925 - 48 * s, 152 * s, 44 * s, seed);
 
   // Palm band + two-line production footer.
   const bandY = H * 0.925;

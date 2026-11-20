@@ -46,9 +46,27 @@ async function shotCover() {
   window.__shotReady = true;
 }
 
+async function shotEditor() {
+  await initEditor();
+  // Select panel 2 (THE BOSS) so the per-panel controls are populated,
+  // then scroll the right column to those controls: zoom slider,
+  // Flip / Swap / Face, name tag — with the Effects sliders below them.
+  const items = document.querySelectorAll('.panel-item');
+  if (items[1]) items[1].click();
+  const controls = document.querySelector('.panel-controls');
+  if (controls) controls.scrollIntoView({ block: 'start' });
+  // Show the export confirmation toast, pinned (no auto-hide in the shot).
+  const toastEl = document.getElementById('toast');
+  toastEl.textContent = 'Saved sundown-harbor-1920x1080.png — 1920 × 1080 PNG.';
+  toastEl.classList.add('show');
+  window.__shotReady = true;
+}
+
 async function boot() {
   if (shot === 'cover') {
     await shotCover();
+  } else if (shot === 'editor') {
+    await shotEditor();
   } else {
     await initEditor();
     window.__shotReady = true;
